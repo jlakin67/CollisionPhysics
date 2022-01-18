@@ -19,6 +19,9 @@
     <Filter Include="Imgui">
       <UniqueIdentifier>{3a223637-0895-48c2-9c62-2e42df9c83fa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{2ccaa2f6-00be-4761-982d-36043990d2e8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -103,5 +106,13 @@
     <None Include="Shaders\pos.frag">
       <Filter>Shaders</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="Assets\cube.obj">
+      <Filter>Assets</Filter>
+    </Object>
+    <Object Include="Assets\low-poly-sphere.obj">
+      <Filter>Assets</Filter>
+    </Object>
   </ItemGroup>
 </Project>
