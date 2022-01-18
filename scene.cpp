@@ -203,8 +203,10 @@ void loadScene(EntityManager& entityManager, const char* path, Mesh& cubeMesh, M
 
 	std::fstream file;
 	file.open(path, std::ios_base::in);
+	bool loadFailed = false;
 	if (!file.is_open()) {
 		std::cerr << "Failed to load scene json at path: " << path << std::endl;
+		loadFailed = true;
 		return;
 	}
 
@@ -213,9 +215,10 @@ void loadScene(EntityManager& entityManager, const char* path, Mesh& cubeMesh, M
 	}
 	catch (std::exception& e) {
 		std::cerr << e.what() << std::endl;
-		return;
+		loadFailed = true;
 	}
 	file.close();
+	if (loadFailed) return;
 
 	auto posIt = j.find("pos");
 	if (posIt == j.end()) return;
