@@ -78,12 +78,12 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Users\juice\Documents\Libraries\glad\include;C:\Users\juice\Documents\Libraries\glfw-3.3.3\include;C:\Users\juice\Documents\Libraries\glm-master;C:\Users\juice\Documents\Libraries\assimp-5.1.5\include;C:\Users\juice\Documents\Libraries\imgui-master\imgui-master;C:\Users\juice\Documents\Libraries\json-3.10.5\single_include</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Users\juice\Documents\Libraries\glfw-3.3.3\include;C:\Users\juice\Documents\Libraries\glm-master;C:\Users\juice\Documents\Libraries\assimp-5.1.5\include;C:\Users\juice\Documents\Libraries\imgui-master\imgui-master;C:\Users\juice\Documents\Libraries\json-3.10.5\single_include;C:\Users\juice\source\repos\CollisionPhysics</IncludePath>
     <LibraryPath>C:\Users\juice\Documents\Libraries\glfw-3.3.3\build\src\Debug;C:\Users\juice\Documents\Libraries\assimp-5.1.5\build\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Users\juice\Documents\Libraries\glad\include;C:\Users\juice\Documents\Libraries\glfw-3.3.3\include;C:\Users\juice\Documents\Libraries\glm-master;C:\Users\juice\Documents\Libraries\assimp-5.1.5\include;C:\Users\juice\Documents\Libraries\imgui-master\imgui-master;C:\Users\juice\Documents\Libraries\json-3.10.5\single_include</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Users\juice\Documents\Libraries\glfw-3.3.3\include;C:\Users\juice\Documents\Libraries\glm-master;C:\Users\juice\Documents\Libraries\assimp-5.1.5\include;C:\Users\juice\Documents\Libraries\imgui-master\imgui-master;C:\Users\juice\Documents\Libraries\json-3.10.5\single_include;C:\Users\juice\source\repos\CollisionPhysics</IncludePath>
     <LibraryPath>C:\Users\juice\Documents\Libraries\glfw-3.3.3\build\src\Release;C:\Users\juice\Documents\Libraries\assimp-5.1.5\build\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -149,7 +149,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Documents\Libraries\glad\src\glad.c" />
     <ClCompile Include="..\..\..\Documents\Libraries\imgui-master\imgui-master\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\..\Documents\Libraries\imgui-master\imgui-master\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="..\..\..\Documents\Libraries\imgui-master\imgui-master\imgui.cpp" />
@@ -158,6 +157,7 @@
     <ClCompile Include="..\..\..\Documents\Libraries\imgui-master\imgui-master\imgui_tables.cpp" />
     <ClCompile Include="..\..\..\Documents\Libraries\imgui-master\imgui-master\imgui_widgets.cpp" />
     <ClCompile Include="collision.cpp" />
+    <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="physics.cpp" />
     <ClCompile Include="renderer.cpp" />
@@ -169,6 +169,8 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="config.h" />
+    <ClInclude Include="glad\glad.h" />
+    <ClInclude Include="KHR\khrplatform.h" />
     <ClInclude Include="physics.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="scene.h" />
@@ -176,13 +178,10 @@
     <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="README.md" />
     <None Include="Shaders\basic.frag" />
     <None Include="Shaders\basic.vert" />
     <None Include="Shaders\pos.frag" />
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="Assets\cube.obj" />
-    <Object Include="Assets\low-poly-sphere.obj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
