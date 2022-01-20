@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glad/glad.h>
+#include "util.h"
 #include "config.h"
 #include "collision.h"
 #include <unordered_map>
@@ -45,6 +45,7 @@ public:
 	glm::mat4 model{ 1.0f };
 	glm::vec3 color{ 0.5f };
 	Mesh mesh;
+	bool collisionOccurred = false;
 	friend bool operator ==(const Renderable& first, const Renderable& second) {
 		bool cond = true;
 		cond = cond && (first.model == second.model);
@@ -74,22 +75,21 @@ public:
 
 bool loadModel(Mesh& mesh, const char* modelPath, unsigned int flags);
 
-using BoundingVolumeRef = std::reference_wrapper<BoundingVolume>;
-using BoundingVolumePair = std::pair<uint32_t, BoundingVolumeRef>;
+using BoundingVolumePair = std::pair<uint32_t, BoundingVolume*>;
 
 class SpatialPartition {
 public:
-	virtual std::vector<BoundingVolumePair> getNearestObjects(BoundingVolume& in) = 0;
-	virtual void insert(uint32_t entityIndex, BoundingVolume& boundingVolume) = 0;
+	virtual std::vector<BoundingVolumePair> getNearestObjects(BoundingVolumePair& in) = 0;
+	virtual void insert(uint32_t entityIndex, BoundingVolume* boundingVolume) = 0;
 	virtual bool remove(uint32_t entityIndex) = 0;
 };
 
 class NullPartition : public SpatialPartition {
 public:
-	std::vector<BoundingVolumePair> getNearestObjects(BoundingVolume& in) override;
-	void insert(uint32_t entityIndex, BoundingVolume& boundingVolume) override;
+	std::vector<BoundingVolumePair> getNearestObjects(BoundingVolumePair& in) override;
+	void insert(uint32_t entityIndex, BoundingVolume* boundingVolume) override;
 	bool remove(uint32_t entityIndex) override;
-	std::unordered_map<uint32_t, BoundingVolumeRef> list;
+	std::unordered_map<uint32_t, BoundingVolume*> list;
 };
 
 class EntityManager {

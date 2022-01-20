@@ -1,46 +1,48 @@
 #include "physics.h"
 
+
 void PhysicsManager::runPhysics(EntityManager& entityManager) {
 	//collision
-	std::unordered_set<uint32_t> found;
-	for (auto& pair : entityManager.gameEntities) {
-		GameEntity& gameEntity = pair.second;
-		uint32_t index = gameEntity.getIndex();
-		if (found.find(index) != found.end()) continue;
+	UnorderedPairSet collisionsFound;
+	for (auto& entity : entityManager.gameEntities) {
+		GameEntity& gameEntity = entity.second;
+		std::vector<BoundingVolumePair> nearestObjects;
+		BoundingVolume* boundingVolume = nullptr;
 		switch (gameEntity.getBoundType()) {
-			case BoundType::AABB: {
-				AABB& aabb = entityManager.aabbs.at(index);
-				std::vector<BoundingVolumePair> refs = entityManager.spatialPartition.getNearestObjects(aabb);
-				runCollisionChecks(entityManager, { index, aabb }, refs, found);
-				break;
+		case BoundType::AABB: 
+			{
+				AABB& aabb = entityManager.aabbs.at(gameEntity.getIndex());
+				boundingVolume = &aabb;
+				BoundingVolumePair pair = { gameEntity.getIndex(), boundingVolume };
+				nearestObjects = entityManager.spatialPartition.getNearestObjects(pair);
 			}
-			case BoundType::Sphere: {
-				BoundingSphere& boundingSphere = entityManager.boundingSpheres.at(index);
-				std::vector<BoundingVolumePair> refs = entityManager.spatialPartition.getNearestObjects(boundingSphere);
-				runCollisionChecks(entityManager, { index, boundingSphere }, refs, found);
-				break;
+			break;
+		case BoundType::Sphere: 
+			{
+				BoundingSphere& boundingSphere = entityManager.boundingSpheres.at(gameEntity.getIndex());
+				boundingVolume = &boundingSphere;
+				BoundingVolumePair pair = { gameEntity.getIndex(), boundingVolume };
+				nearestObjects = entityManager.spatialPartition.getNearestObjects(pair);
 			}
+			break;
 		}
-		
-	}
-}
-
-void PhysicsManager::runCollisionChecks(EntityManager& entityManager, BoundingVolumePair ref, std::vector<BoundingVolumePair>& refs,
-	std::unordered_set<uint32_t>& found) {
-	for (BoundingVolumePair& boundingVolumePair : refs) {
-		if (isIntersecting(ref.second, boundingVolumePair.second)) {
-			auto refPair = entityManager.renderables.find(boundingVolumePair.first);
-			if (refPair != entityManager.renderables.end()) {
-				Renderable& renderable = refPair->second;
-				renderable.color = glm::vec3(1.0f, 0.0f, 0.0f);
+		for (BoundingVolumePair& boundingVolumePair : nearestObjects) {
+			std::pair<uint32_t, uint32_t> collisionPair{ gameEntity.getIndex(), boundingVolumePair.first };
+			if (collisionsFound.find(collisionPair) != collisionsFound.end()) {
+				continue;
 			}
-			refPair = entityManager.renderables.find(boundingVolumePair.first);
-			if (refPair != entityManager.renderables.end()) {
-				Renderable& renderable = refPair->second;
-				renderable.color = glm::vec3(1.0f, 0.0f, 0.0f);
+			if (boundingVolume->intersect(boundingVolumePair.second)) {
+				auto it = entityManager.renderables.find(gameEntity.getIndex());
+				if (it != entityManager.renderables.end()) {
+					it->second.collisionOccurred = true;
+				}
+				it = entityManager.renderables.find(boundingVolumePair.first);
+				if (it != entityManager.renderables.end()) {
+					it->second.collisionOccurred = true;
+				}
+				collisionsFound.insert(collisionPair);
 			}
-			found.insert(ref.first);
-			found.insert(boundingVolumePair.first);
+			//run physics based on whether collision found or not
 		}
 	}
 }

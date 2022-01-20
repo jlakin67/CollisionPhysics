@@ -83,6 +83,13 @@ void Renderer::renderFrame(GLFWwindow* window, EntityManager& entityManager, UIS
         Renderable& renderable = pair.second;
         InstanceData instanceData;
         instanceData.model = renderable.model;
+        if (renderable.collisionOccurred) {
+            renderable.collisionOccurred = false;
+            renderable.color = glm::vec3(1.0f, 0.0f, 0.0f);
+        }
+        else {
+            renderable.color = glm::vec3(0.5f);
+        }
         instanceData.color = glm::vec4(renderable.color, 1.0f);
         if (renderable.mesh == cubeMesh) cubeInstanceData.push_back(instanceData);
         else sphereInstanceData.push_back(instanceData);
@@ -178,7 +185,7 @@ void Renderer::renderFrame(GLFWwindow* window, EntityManager& entityManager, UIS
             }
             ImGui::SameLine();
             if (ImGui::Button("Add box")) {
-                entityList.push_back(entityManager.createEntity(cubeMesh, BoundType::AABB, glm::vec3(0.5f)));
+                entityList.push_back(entityManager.createEntity(cubeMesh, BoundType::AABB));
             }
 
             ImGui::Spacing();

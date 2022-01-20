@@ -53,6 +53,7 @@ int main(int argc, char* argv[]) {
         
         glm::mat4 view = camera.getView();
         renderer.setView(view);
+        physicsManager.runPhysics(entityManager);
         renderer.renderFrame(window, entityManager, uiState);
 
         double currentTime = glfwGetTime();

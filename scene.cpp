@@ -97,7 +97,7 @@ uint32_t EntityManager::createEntity(Mesh mesh, BoundType boundType, glm::vec3 p
 			aabb.center = pos;
 			aabb.halfExtent = scale / 2.0f;
 			aabbs.emplace(entity.index, aabb);
-			spatialPartition.insert(entity.index, aabb);
+			spatialPartition.insert(entity.index, &aabbs.at(entity.index));
 		}
 		break;
 		case BoundType::Sphere: 
@@ -106,7 +106,7 @@ uint32_t EntityManager::createEntity(Mesh mesh, BoundType boundType, glm::vec3 p
 			boundingSphere.center = pos;
 			boundingSphere.radius = scale.x;
 			boundingSpheres.emplace(entity.index, boundingSphere);
-			spatialPartition.insert(entity.index, boundingSphere);
+			spatialPartition.insert(entity.index, &boundingSpheres.at(entity.index));
 		}
 		break;
 	}
@@ -143,6 +143,7 @@ bool EntityManager::destroyEntity(uint32_t index) {
 	if (renderableIt != renderables.end()) {
 		renderables.erase(renderableIt);
 	}
+	gameEntities.erase(gameEntityIt);
 	return true;
 }
 
@@ -275,14 +276,14 @@ void storeScene(EntityManager& entityManager, const char* path) {
 	file.close();
 }
 
-void NullPartition::insert(uint32_t entityIndex, BoundingVolume& boundingVolume) {
+void NullPartition::insert(uint32_t entityIndex, BoundingVolume* boundingVolume) {
 	list.emplace(entityIndex, boundingVolume);
 }
 
-std::vector<BoundingVolumePair> NullPartition::getNearestObjects(BoundingVolume& in) {
+std::vector<BoundingVolumePair> NullPartition::getNearestObjects(BoundingVolumePair& in) {
 	std::vector<BoundingVolumePair> all;
 	for (auto& pair : list) {
-		all.push_back(pair);
+		if (in.first != pair.first) all.push_back(pair);
 	}
 	return all;
 }
