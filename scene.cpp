@@ -34,6 +34,7 @@ void EntityManager::setScale(uint32_t index, glm::vec3 scale) {
 		}
 		break;
 	}
+	spatialPartition.update(index);
 	if (isSphere) gameEntity.scale = glm::vec3(scale.x);
 	auto renderableIt = renderables.find(index);
 	if (renderableIt != renderables.end()) {
@@ -68,6 +69,7 @@ void EntityManager::setPos(uint32_t index, glm::vec3& pos) {
 		}
 		break;
 	}
+	spatialPartition.update(index);
 	auto renderableIt = renderables.find(index);
 	if (renderableIt != renderables.end()) {
 		glm::mat4 model{ 1.0f };
@@ -277,11 +279,13 @@ void storeScene(EntityManager& entityManager, const char* path) {
 }
 
 void NullPartition::insert(uint32_t entityIndex, BoundingVolume* boundingVolume) {
+	assert(boundingVolume);
 	list.emplace(entityIndex, boundingVolume);
 }
 
-std::vector<BoundingVolumePair> NullPartition::getNearestObjects(BoundingVolumePair& in) {
-	std::vector<BoundingVolumePair> all;
+std::vector<BoundingVolumePair>& NullPartition::getNearestObjects(BoundingVolumePair& in) {
+	static std::vector<BoundingVolumePair> all;
+	all.clear();
 	for (auto& pair : list) {
 		if (in.first != pair.first) all.push_back(pair);
 	}
@@ -293,4 +297,281 @@ bool NullPartition::remove(uint32_t entityIndex) {
 	if (it == list.end()) return false;
 	list.erase(it);
 	return true;
+}
+
+bool NullPartition::update(uint32_t entityIndex) {
+	return true;
+}
+
+void SortedAABBList::insert(uint32_t entityIndex, BoundingVolume* boundingVolume) {
+	assert(boundingVolume);
+	Node minNode{};
+	minNode.isMax = false;
+	minNode.index = entityIndex;
+	minNode.boundingVolume = boundingVolume;
+	nodes.emplace(std::pair<uint32_t, bool>(entityIndex, false), minNode);
+	Node* minNodeRef = &nodes.find(std::pair<uint32_t, bool>(entityIndex, false))->second;
+	insertHelper(minNodeRef);
+	Node maxNode{};
+	maxNode.isMax = true;
+	maxNode.index = entityIndex;
+	maxNode.boundingVolume = boundingVolume;
+	nodes.emplace(std::pair<uint32_t, bool>(entityIndex, true), maxNode);
+	Node* maxNodeRef = &nodes.find(std::pair<uint32_t, bool>(entityIndex, true))->second;
+	insertHelper(maxNodeRef);
+}
+
+void SortedAABBList::insertHelper(Node* node) {
+	for (int i = 0; i < 3; i++) {
+		if (!head[i]) {
+			head[i] = node;
+		}
+		else {
+			BoundingVolume* boundingVolume = node->boundingVolume;
+			float value;
+			if (node->isMax) {
+				value = boundingVolume->getCenter()[i] + boundingVolume->getHalfExtent()[i];
+			}
+			else {
+				value = boundingVolume->getCenter()[i] - boundingVolume->getHalfExtent()[i];
+			}
+			for (Node* p = head[i]; p != nullptr; p = p->next[i]) {
+				BoundingVolume* compBoundingVolume = p->boundingVolume;
+				float compValue;
+				if (p->isMax) {
+					compValue = compBoundingVolume->getCenter()[i] + compBoundingVolume->getHalfExtent()[i];
+				}
+				else {
+					compValue = compBoundingVolume->getCenter()[i] - compBoundingVolume->getHalfExtent()[i];
+				}
+				if (value <= compValue) {
+					if (p == head[i]) {
+						node->next[i] = p;
+						p->prev[i] = node;
+						head[i] = node;
+						node->prev[i] = nullptr;
+						break;
+					}
+					else {
+						Node* p_prev = p->prev[i];
+						p_prev->next[i] = node;
+						p->prev[i] = node;
+						node->prev[i] = p_prev;
+						node->next[i] = p;
+						break;
+					}
+				}
+				if (!p->next[i]) {
+					p->next[i] = node;
+					node->prev[i] = p;
+					node->next[i] = nullptr;
+					break;
+				}
+			}
+		}
+	}
+}
+
+bool SortedAABBList::remove(uint32_t entityIndex) {
+	auto min_it = nodes.find(std::pair<uint32_t, bool>(entityIndex, false));
+	if (min_it == nodes.end()) return false;
+	auto max_it = nodes.find(std::pair<uint32_t, bool>(entityIndex, true));
+	if (max_it == nodes.end()) return false;
+	Node& min_node = min_it->second;
+	for (int i = 0; i < 3; i++) {
+		if (head[i] == &min_node) {
+			if(min_node.next[i]) min_node.next[i]->prev[i] = nullptr;
+			head[i] = min_node.next[i];
+		}
+		else {
+			min_node.prev[i]->next[i] = min_node.next[i];
+			if (min_node.next[i]) min_node.next[i]->prev[i] = min_node.prev[i];
+		}
+	}
+	nodes.erase(min_it);
+	Node& max_node = max_it->second;
+	for (int i = 0; i < 3; i++) {
+		if (head[i] == &max_node) {
+			if (max_node.next[i]) max_node.next[i]->prev[i] = nullptr;
+			head[i] = max_node.next[i];
+		}
+		else {
+			max_node.prev[i]->next[i] = max_node.next[i];
+			if (max_node.next[i]) max_node.next[i]->prev[i] = max_node.prev[i];
+		}
+	}
+	nodes.erase(max_it);
+	return true;
+}
+
+bool SortedAABBList::update(uint32_t entityIndex) {
+	auto min_it = nodes.find(std::pair<uint32_t, bool>(entityIndex, false));
+	if (min_it == nodes.end()) return false;
+	auto max_it = nodes.find(std::pair<uint32_t, bool>(entityIndex, true));
+	if (max_it == nodes.end()) return false;
+	updateHelper(min_it);
+	updateHelper(max_it);
+	return true;
+}
+
+void SortedAABBList::updateHelper(decltype(nodes)::iterator it) {
+	Node& node = it->second;
+	for (int i = 0; i < 3; i++) {
+		float value;
+		if (node.isMax) {
+			value = node.boundingVolume->getCenter()[i] + node.boundingVolume->getHalfExtent()[i];
+		}
+		else {
+			value = node.boundingVolume->getCenter()[i] - node.boundingVolume->getHalfExtent()[i];
+		}
+		Node* prev_node = node.prev[i];
+		if (prev_node) {
+			float prev_value;
+			if (prev_node->isMax) {
+				prev_value = prev_node->boundingVolume->getCenter()[i] + prev_node->boundingVolume->getHalfExtent()[i];
+			}
+			else {
+				prev_value = prev_node->boundingVolume->getCenter()[i] - prev_node->boundingVolume->getHalfExtent()[i];
+			}
+			while (prev_value > value && prev_node != nullptr) {
+				swap(i, prev_node, &node);
+				prev_node = prev_node->prev[i];
+				if (prev_node->isMax) {
+					prev_value = prev_node->boundingVolume->getCenter()[i] + prev_node->boundingVolume->getHalfExtent()[i];
+				}
+				else {
+					prev_value = prev_node->boundingVolume->getCenter()[i] - prev_node->boundingVolume->getHalfExtent()[i];
+				}
+			}
+		}
+		Node* next_node = node.next[i];
+		if (next_node) {
+			float next_value;
+			if (next_node->isMax) {
+				next_value = next_node->boundingVolume->getCenter()[i] + next_node->boundingVolume->getHalfExtent()[i];
+			}
+			else {
+				next_value = next_node->boundingVolume->getCenter()[i] - next_node->boundingVolume->getHalfExtent()[i];
+			}
+			while (next_value < value && next_node != nullptr) {
+				swap(i, &node, next_node);
+				next_node = next_node->next[i];
+				if (next_node->isMax) {
+					next_value = next_node->boundingVolume->getCenter()[i] + next_node->boundingVolume->getHalfExtent()[i];
+				}
+				else {
+					next_value = next_node->boundingVolume->getCenter()[i] - next_node->boundingVolume->getHalfExtent()[i];
+				}
+			}
+		}
+	}
+}
+
+
+void SortedAABBList::swap(int i, Node* first, Node* second) {
+	assert(first && second && (i < 3) && (i >= 0));
+	if (first == second) return;
+	if (head[i] == first) head[i] = second;
+	else if (head[i] == second) head[i] = first;
+	Node* first_prev = first->prev[i];
+	Node* first_next = first->next[i];
+	Node* second_prev = second->prev[i];
+	Node* second_next = second->next[i];
+	if (first_next == second) {
+		if (first_prev) first_prev->next[i] = second;
+		second->prev[i] = first_prev;
+		second->next[i] = first;
+		if (second_next) second_next->prev[i] = first;
+		first->prev[i] = second;
+		first->next[i] = second_next;
+	} else if (first_prev == second) {
+		if (second_prev) second_prev->next[i] = first;
+		if (first_next) first_next->prev[i] = second;
+		first->prev[i] = second_prev;
+		first->next[i] = second;
+		second->prev[i] = first;
+		second->next[i] = first_next;
+	} else {
+		if (first_prev) first_prev->next[i] = second;
+		second->prev[i] = first_prev;
+		second->next[i] = first_next;
+		if (first_next) first_next->prev[i] = second;
+		if (second_prev) second_prev->next[i] = first;
+		first->prev[i] = second_prev;
+		first->next[i] = second_next;
+		if (second_next) second_next->prev[i] = first;
+	}
+}
+
+std::vector<BoundingVolumePair>& SortedAABBList::getNearestObjects(BoundingVolumePair& in) {
+	//debugPrint();
+	static std::vector<BoundingVolumePair> nearestObjects; //called every frame anyway so made static to avoid reallocating
+	nearestObjects.clear();
+	uint32_t index = in.first;
+	BoundingVolume* boundingVolume = in.second;
+	assert(boundingVolume);
+	auto min_it = nodes.find(std::pair<uint32_t, bool>(index, false));
+	if (min_it == nodes.end()) return nearestObjects;
+	auto max_it = nodes.find(std::pair<uint32_t, bool>(index, true));
+	if (max_it == nodes.end()) return nearestObjects;
+	Node& min = min_it->second;
+	Node& max = max_it->second;
+	assert(min.boundingVolume == max.boundingVolume);
+	glm::vec3 min_value = min.boundingVolume->getCenter() - min.boundingVolume->getHalfExtent();
+	glm::vec3 max_value = max.boundingVolume->getCenter() + max.boundingVolume->getHalfExtent();
+	std::unordered_map<uint32_t, uint32_t> potentialNearest;
+	for (int i = 0; i < 3; i++) {
+		assert(min_value[i] <= max_value[i]);
+		for (Node* p = min.next[i]; p != &max; p = p->next[i]) {
+			assert(p);
+			if (p->boundingVolume != boundingVolume) {
+				auto it = potentialNearest.find(p->index);
+				if (it == potentialNearest.end()) {
+					potentialNearest.emplace(p->index, 1);
+				}
+				else {
+					it->second++;
+				}
+			}
+		}
+	}
+	for (auto pair : potentialNearest) {
+		if (pair.second >= 3) {
+			Node& node = nodes.at(std::pair<uint32_t,bool>(pair.first, true));
+			nearestObjects.push_back(BoundingVolumePair{ pair.first, node.boundingVolume });
+		}
+	}
+	return nearestObjects;
+}
+
+void SortedAABBList::debugSizeCheck() {
+	for (int i = 0; i < 3; i++) {
+		uint32_t size = 0;
+		for (Node* p = head[i]; p != nullptr; p = p->next[i]) {
+			size++;
+		}
+		assert(size == nodes.size());
+	}
+}
+
+void SortedAABBList::debugPrint() {
+	for (int i = 0; i < 3; i++) {
+		std::cout << i << ": ";
+		for (Node* p = head[i]; p != nullptr; p = p->next[i]) {
+			BoundingVolume* boundingVolume = p->boundingVolume;
+			float value;
+			if (p->isMax) {
+				value = boundingVolume->getCenter()[i] + boundingVolume->getHalfExtent()[i];
+			} else {
+				value = boundingVolume->getCenter()[i] - boundingVolume->getHalfExtent()[i];
+			}
+			if (p->next[i]) {
+				std::cout << "index: " << p->index << " value: " << value << ", ";
+			} else {
+				std::cout << "index: " << p->index << " value: " << value;
+			}
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
 }

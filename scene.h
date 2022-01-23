@@ -79,17 +79,53 @@ using BoundingVolumePair = std::pair<uint32_t, BoundingVolume*>;
 
 class SpatialPartition {
 public:
-	virtual std::vector<BoundingVolumePair> getNearestObjects(BoundingVolumePair& in) = 0;
+	virtual std::vector<BoundingVolumePair>& getNearestObjects(BoundingVolumePair& in) = 0;
 	virtual void insert(uint32_t entityIndex, BoundingVolume* boundingVolume) = 0;
 	virtual bool remove(uint32_t entityIndex) = 0;
+	virtual bool update(uint32_t entityIndex) = 0;
+
 };
 
 class NullPartition : public SpatialPartition {
 public:
-	std::vector<BoundingVolumePair> getNearestObjects(BoundingVolumePair& in) override;
+	std::vector<BoundingVolumePair>& getNearestObjects(BoundingVolumePair& in) override;
 	void insert(uint32_t entityIndex, BoundingVolume* boundingVolume) override;
 	bool remove(uint32_t entityIndex) override;
+	bool update(uint32_t entityIndex) override;
 	std::unordered_map<uint32_t, BoundingVolume*> list;
+};
+
+template<typename T1, typename T2>
+struct PairHash {
+	inline std::size_t operator()(const std::pair<T1, T2>& v) const {
+		std::size_t seed = 0;
+		hash_combine(seed, v.first);
+		hash_combine(seed, v.second);
+		return seed;
+	}
+};
+
+class SortedAABBList : public SpatialPartition {
+public:
+	std::vector<BoundingVolumePair>& getNearestObjects(BoundingVolumePair& in) override;
+	void insert(uint32_t entityIndex, BoundingVolume* boundingVolume) override;
+	bool remove(uint32_t entityIndex) override;
+	bool update(uint32_t entityIndex) override;
+private:
+	struct Node {
+		uint32_t index = UINT32_MAX;
+		Node* prev[3] = { nullptr, nullptr, nullptr };
+		Node* next[3] = { nullptr, nullptr, nullptr };
+		BoundingVolume* boundingVolume = nullptr;
+		bool isMax = false;
+	};
+	std::unordered_map<std::pair<uint32_t, bool>, Node, PairHash<uint32_t, bool>> nodes;
+	Node* head[3] = { nullptr, nullptr, nullptr };
+	void insertHelper(Node* node);
+	void updateHelper(decltype(nodes)::iterator it);
+	void swap(int i, Node* first, Node* second);
+	void debugPrint();
+	void debugSizeCheck();
 };
 
 class EntityManager {

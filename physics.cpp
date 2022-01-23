@@ -1,9 +1,10 @@
 #include "physics.h"
-
+#include <iostream>
 
 void PhysicsManager::runPhysics(EntityManager& entityManager) {
 	//collision
-	UnorderedPairSet collisionsFound;
+	static UnorderedPairSet collisionsFound; //called every frame anyway so made static to avoid reallocating
+	collisionsFound.clear();
 	for (auto& entity : entityManager.gameEntities) {
 		GameEntity& gameEntity = entity.second;
 		std::vector<BoundingVolumePair> nearestObjects;
@@ -26,6 +27,7 @@ void PhysicsManager::runPhysics(EntityManager& entityManager) {
 			}
 			break;
 		}
+		//std::cout << "Entity: " << gameEntity.getIndex() << ", Potential collisions: " << nearestObjects.size() << std::endl;
 		for (BoundingVolumePair& boundingVolumePair : nearestObjects) {
 			std::pair<uint32_t, uint32_t> collisionPair{ gameEntity.getIndex(), boundingVolumePair.first };
 			if (collisionsFound.find(collisionPair) != collisionsFound.end()) {

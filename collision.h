@@ -23,6 +23,8 @@ public:
 	virtual bool intersect(BoundingVolume* boundingVolume) = 0;
 	virtual bool intersect(const AABB& aabb) = 0;
 	virtual bool intersect(const BoundingSphere& boundingSphere) = 0;
+	virtual glm::vec3 getHalfExtent() = 0;
+	virtual glm::vec3 getCenter() = 0;
 };
 
 class AABB : public BoundingVolume { //meant for static geometry
@@ -37,6 +39,12 @@ public:
 	}
 	bool intersect(const BoundingSphere& boundingSphere) override {
 		return boxSphereIntersection(*this, boundingSphere);
+	}
+	glm::vec3 getHalfExtent() override {
+		return halfExtent;
+	}
+	glm::vec3 getCenter() override {
+		return center;
 	}
 	glm::vec3 center;
 	glm::vec3 halfExtent;
@@ -56,5 +64,11 @@ public:
 	}
 	bool intersect(const BoundingSphere& boundingSphere) override {
 		return sphereIntersection(*this, boundingSphere);
+	}
+	glm::vec3 getHalfExtent() override {
+		return glm::vec3(radius);
+	}
+	glm::vec3 getCenter() override {
+		return center;
 	}
 };

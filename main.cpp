@@ -7,9 +7,10 @@
 #include <vector>
 #include "physics.h"
 
-NullPartition nullPartition;
+//NullPartition nullPartition;
+SortedAABBList sortedAABBList;
 
-EntityManager entityManager{ nullPartition };
+EntityManager entityManager{ sortedAABBList };
 
 Renderer renderer;
 
