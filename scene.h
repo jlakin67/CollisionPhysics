@@ -8,7 +8,32 @@
 #include "config.h"
 #include "collision.h"
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
+
+template<typename T>
+struct UnorderedPairHash {
+	inline std::size_t operator()(const std::pair<T, T>& v) const {
+		T smallest = std::min(v.first, v.second);
+		T largest = std::max(v.first, v.second);
+		std::size_t seed = 0;
+		hash_combine(seed, smallest);
+		hash_combine(seed, largest);
+		return seed;
+	}
+};
+
+template<typename T>
+struct UnorderedPairPred {
+	inline bool operator()(const std::pair<T, T>& lhs, const std::pair<T, T>& rhs) const {
+		std::pair<T, T> first{ std::min(lhs.first, lhs.second), std::max(lhs.first, lhs.second) };
+		std::pair<T, T> second{ std::min(rhs.first, rhs.second), std::max(rhs.first, rhs.second) };
+		return (first == second);
+	}
+};
+
+using UnorderedPairSet = std::unordered_set<std::pair<uint32_t, uint32_t>, UnorderedPairHash<uint32_t>, UnorderedPairPred<uint32_t>>;
+using UnorderedPairMap = std::unordered_map<std::pair<uint32_t, uint32_t>, std::pair<BoundingVolume*, BoundingVolume*>, UnorderedPairHash<uint32_t>, UnorderedPairPred<uint32_t>>;
 
 class Mesh {
 public:
@@ -80,6 +105,7 @@ using BoundingVolumePair = std::pair<uint32_t, BoundingVolume*>;
 class SpatialPartition {
 public:
 	virtual std::vector<BoundingVolumePair>& getNearestObjects(BoundingVolumePair& in) = 0;
+	virtual UnorderedPairMap& getCollisionPairs() = 0;
 	virtual void insert(uint32_t entityIndex, BoundingVolume* boundingVolume) = 0;
 	virtual bool remove(uint32_t entityIndex) = 0;
 	virtual bool update(uint32_t entityIndex) = 0;
@@ -111,6 +137,7 @@ public:
 	void insert(uint32_t entityIndex, BoundingVolume* boundingVolume) override;
 	bool remove(uint32_t entityIndex) override;
 	bool update(uint32_t entityIndex) override;
+	UnorderedPairMap& getCollisionPairs();
 private:
 	struct Node {
 		uint32_t index = UINT32_MAX;

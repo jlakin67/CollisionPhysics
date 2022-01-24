@@ -48,3 +48,19 @@ void PhysicsManager::runPhysics(EntityManager& entityManager) {
 		}
 	}
 }
+
+void PhysicsManager::runPhysics2(EntityManager& entityManager) {
+	UnorderedPairMap& collisionPairs = entityManager.spatialPartition.getCollisionPairs();
+	for (auto& collisionPair : collisionPairs) {
+		if (collisionPair.second.first->intersect(collisionPair.second.second)) {
+			auto it = entityManager.renderables.find(collisionPair.first.first);
+			if (it != entityManager.renderables.end()) {
+				it->second.collisionOccurred = true;
+			}
+			it = entityManager.renderables.find(collisionPair.first.second);
+			if (it != entityManager.renderables.end()) {
+				it->second.collisionOccurred = true;
+			}
+		}
+	}
+}

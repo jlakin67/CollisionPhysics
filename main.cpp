@@ -6,6 +6,7 @@
 #include "scene.h"
 #include <vector>
 #include "physics.h"
+#include <chrono>
 
 //NullPartition nullPartition;
 SortedAABBList sortedAABBList;
@@ -54,7 +55,10 @@ int main(int argc, char* argv[]) {
         
         glm::mat4 view = camera.getView();
         renderer.setView(view);
-        physicsManager.runPhysics(entityManager);
+        //auto start = std::chrono::high_resolution_clock::now();
+        physicsManager.runPhysics2(entityManager);
+        //auto finish = std::chrono::high_resolution_clock::now();
+        //std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(finish - start).count() << "ns\n";
         renderer.renderFrame(window, entityManager, uiState);
 
         double currentTime = glfwGetTime();

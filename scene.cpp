@@ -544,6 +544,26 @@ std::vector<BoundingVolumePair>& SortedAABBList::getNearestObjects(BoundingVolum
 	return nearestObjects;
 }
 
+UnorderedPairMap& SortedAABBList::getCollisionPairs() {
+	static UnorderedPairMap collisionPairs;
+	static std::unordered_map<uint32_t, BoundingVolume*> collisionList;
+	collisionPairs.clear();
+	for (int i = 0; i < 3; i++) {
+		collisionList.clear();
+		for (Node* p = head[i]; p != nullptr; p = p->next[i]) {
+			if (!p->isMax) collisionList.emplace(p->index, p->boundingVolume);
+			else {
+				for (auto& pair : collisionList) {
+					if (pair.first == p->index) continue;
+					collisionPairs.emplace(std::pair<uint32_t, uint32_t>(p->index, pair.first), std::pair<BoundingVolume*, BoundingVolume*>(p->boundingVolume, pair.second));
+					collisionList.erase(p->index);
+				}
+			}
+		}
+	}
+	return collisionPairs;
+}
+
 void SortedAABBList::debugSizeCheck() {
 	for (int i = 0; i < 3; i++) {
 		uint32_t size = 0;
